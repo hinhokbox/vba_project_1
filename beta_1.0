@@ -1,0 +1,2480 @@
+'Beta 1.0
+
+Public x As Integer
+Public y As Integer
+Public rowarray() As Integer
+Public colarray() As Integer
+Public arraymax As Integer
+Public rownow As Integer
+Public colnow As Integer
+Public upnum As Integer
+Public leftbound As Integer
+Public rightbound As Integer
+Public topbound As Integer
+Public botbound As Integer
+Public checkval As Integer
+Public tf As Boolean
+Public temprowarray() As Integer
+Public tempcolarray() As Integer
+Public steps As Integer
+Public nexttime As Date
+
+Public FULLROWCOUNT As Integer
+
+'Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal ms As LongPtr)
+'Private Declare PtrSafe Function GetTickCount Lib "kernel32" () As Long
+'32bit:
+Private Declare Function SetTimer Lib "user32" (ByVal hwnd As Long, ByVal nIDEvent As Long, ByVal uElapse As Long, ByVal lpTimerFunc As Long) As Long
+Private Declare Function KillTimer Lib "user32" (ByVal hwnd As Long, ByVal nIDEvent As Long) As Long
+'64bit:
+'Private Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As LongPtr, ByVal lpTimerFunc As LongPtr) As Long
+'Private Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
+Private mlngTimerID As Long
+
+'Run TetMac1() to start the game
+
+Sub TetMac1()
+
+    FULLROWCOUNT = 0
+
+    Dim ct1 As Integer
+    Dim row1 As Integer
+    Dim col1 As Integer
+    Dim tickstart As Long
+    
+    Dim inirand As Integer
+    
+    leftbound = 1
+    rightbound = 14
+    topbound = 6
+    botbound = 37
+    
+    ReDim rowarray(360)
+    ReDim colarray(360)
+    
+    arraymax = 0
+    
+    ReDim temprowarray(4)
+    ReDim tempcolarray(4)
+    
+    tf = True
+        
+    For ct1 = 1 To UBound(rowarray) Step 1
+        rowarray(ct1) = -1
+        colarray(ct1) = -1
+    Next ct1
+        
+    'To set the column width sizes of the display frame
+    For ct1 = 1 To 20 Step 1
+        Columns(ct1).ColumnWidth = 2.2
+    Next ct1
+    
+    'To create the black background
+    With Range("A1", "T40").Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    
+    'To create the white background for the gameplay area
+    With Range("B7", "M36").Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+
+    'Set the appropriate window size of the game
+    Application.WindowState = xlNormal
+    Application.Width = 343.5
+    Application.Height = 744
+    
+    inirand = CInt(Int(((7) * Rnd()) + 1))
+    
+    y = inirand
+    
+    steps = 1
+    
+    RunGame
+    
+End Sub
+    
+Sub RunGame()
+
+    StartCom
+    
+    'Set position reference point for the generated block
+    If (x = 1) Or (x = 3) Or (x = 4) Then
+        rownow = 8
+        colnow = 7
+    ElseIf (x = 2) Or (x = 5) Or (x = 6) Or (x = 7) Then
+        rownow = 8
+        colnow = 8
+    End If
+    
+    upnum = 1
+    
+    tf = True
+    
+    Application.OnKey "{DOWN}", "DownCom"
+    Application.OnKey "{LEFT}", "LeftCom"
+    Application.OnKey "{RIGHT}", "RightCom"
+    Application.OnKey "{UP}", "UpCom"
+    
+    AutoDown
+        
+End Sub
+
+Sub StartCom()
+        
+    Dim rand As Integer
+    Dim temp As Integer
+    
+    x = y
+    temp = x
+    
+    rand = CInt(Int(((7) * Rnd()) + 1))
+    
+    y = rand
+        
+    'To clear previous starting block
+    With Range("G2", "H5").Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+       
+    PreviewBlockDisplay (rand)
+    NewBlockDisplay (temp)
+ 
+End Sub
+
+Sub AutoDown()
+
+    Dim rownow1 As Integer
+    Dim colnow1 As Integer
+    
+    rownow1 = rownow + 1
+    colnow1 = colnow
+    
+    nexttime = Now + TimeValue("00:00:01")
+    
+    checkval = 0
+    
+    If x = 1 Then
+        Block1Pos rownow1, colnow1
+    ElseIf x = 2 Then
+        Block2Pos rownow1, colnow1
+    ElseIf x = 3 Then
+        Block3Pos rownow1, colnow1
+    ElseIf x = 4 Then
+        Block4Pos rownow1, colnow1
+    ElseIf x = 5 Then
+        Block5Pos rownow1, colnow1
+    ElseIf x = 6 Then
+        Block6Pos rownow1, colnow1
+    ElseIf x = 7 Then
+        Block7Pos rownow1, colnow1
+    End If
+    
+    If checkval = 1 Then
+        rownow = rownow + 1
+        steps = steps + 1
+    End If
+    
+    checkval = 0
+    
+    If tf = True Then
+        'Reset timer for each loop passage to avoid exponentially speeding up
+        AutoStop
+        mlngTimerID = SetTimer(0, 0, 500, AddressOf AutoRepeat)
+    ElseIf tf = False Then
+        AutoStop
+        PermBlock
+        'FullRow
+        If steps > 0 Then
+            steps = 0
+            RunGame
+        End If
+        Exit Sub
+    End If
+
+End Sub
+
+Sub AutoRepeat()
+    
+    AutoDown
+    
+End Sub
+
+Sub AutoStop()
+
+    KillTimer 0, mlngTimerID
+    
+End Sub
+
+Sub DownCom()
+    
+    Dim rownow1 As Integer
+    Dim colnow1 As Integer
+    
+    rownow1 = rownow + 1
+    colnow1 = colnow
+    
+    checkval = 0
+    
+    If x = 1 Then
+        Block1Pos rownow1, colnow1
+    ElseIf x = 2 Then
+        Block2Pos rownow1, colnow1
+    ElseIf x = 3 Then
+        Block3Pos rownow1, colnow1
+    ElseIf x = 4 Then
+        Block4Pos rownow1, colnow1
+    ElseIf x = 5 Then
+        Block5Pos rownow1, colnow1
+    ElseIf x = 6 Then
+        Block6Pos rownow1, colnow1
+    ElseIf x = 7 Then
+        Block7Pos rownow1, colnow1
+    End If
+    
+    tf = True
+    
+    If checkval = 1 Then
+        rownow = rownow + 1
+        steps = steps + 1
+    End If
+    
+    checkval = 0
+    
+End Sub
+
+Sub LeftCom()
+    
+    Dim rownow1 As Integer
+    Dim colnow1 As Integer
+    
+    rownow1 = rownow
+    colnow1 = colnow - 1
+    
+    checkval = 0
+    
+    If x = 1 Then
+        Block1Pos rownow1, colnow1
+    ElseIf x = 2 Then
+        Block2Pos rownow1, colnow1
+    ElseIf x = 3 Then
+        Block3Pos rownow1, colnow1
+    ElseIf x = 4 Then
+        Block4Pos rownow1, colnow1
+    ElseIf x = 5 Then
+        Block5Pos rownow1, colnow1
+    ElseIf x = 6 Then
+        Block6Pos rownow1, colnow1
+    ElseIf x = 7 Then
+        Block7Pos rownow1, colnow1
+    End If
+    
+    tf = True
+    
+    If checkval = 1 Then
+        colnow = colnow - 1
+    End If
+    
+    checkval = 0
+    
+End Sub
+
+Sub RightCom()
+    
+    Dim rownow1 As Integer
+    Dim colnow1 As Integer
+    
+    rownow1 = rownow
+    colnow1 = colnow + 1
+    
+    checkval = 0
+    
+    If x = 1 Then
+        Block1Pos rownow1, colnow1
+    ElseIf x = 2 Then
+        Block2Pos rownow1, colnow1
+    ElseIf x = 3 Then
+        Block3Pos rownow1, colnow1
+    ElseIf x = 4 Then
+        Block4Pos rownow1, colnow1
+    ElseIf x = 5 Then
+        Block5Pos rownow1, colnow1
+    ElseIf x = 6 Then
+        Block6Pos rownow1, colnow1
+    ElseIf x = 7 Then
+        Block7Pos rownow1, colnow1
+    End If
+    
+    tf = True
+    
+    If checkval = 1 Then
+        colnow = colnow + 1
+    End If
+    
+    checkval = 0
+    
+End Sub
+
+Sub UpCom()
+
+    Dim rownow1 As Integer
+    Dim colnow1 As Integer
+    
+    rownow1 = rownow
+    colnow1 = colnow
+    
+    checkval = 0
+    
+    If (upnum = 1) Or (upnum = 3) Then
+        upnum = upnum + 1
+    ElseIf upnum = 2 Then
+        If (x = 2) Or (x = 3) Or (x = 7) Then
+            upnum = 1
+        ElseIf (x = 4) Or (x = 5) Or (x = 6) Then
+            upnum = upnum + 1
+        End If
+    ElseIf upnum = 4 Then
+        upnum = 1
+    End If
+    
+    If x = 1 Then
+        Block1Pos rownow1, colnow1
+    ElseIf x = 2 Then
+        Block2Pos rownow1, colnow1
+    ElseIf x = 3 Then
+        Block3Pos rownow1, colnow1
+    ElseIf x = 4 Then
+        Block4Pos rownow1, colnow1
+    ElseIf x = 5 Then
+        Block5Pos rownow1, colnow1
+    ElseIf x = 6 Then
+        Block6Pos rownow1, colnow1
+    ElseIf x = 7 Then
+        Block7Pos rownow1, colnow1
+    End If
+    
+    tf = True
+    
+    If checkval = 0 Then
+        If (upnum = 2) Or (upnum = 3) Or (upnum = 4) Then
+            upnum = upnum - 1
+        ElseIf upnum = 1 Then
+            If (x = 2) Or (x = 3) Or (x = 7) Then
+                upnum = 2
+            ElseIf (x = 4) Or (x = 5) Or (x = 6) Then
+                upnum = 4
+            End If
+        End If
+    End If
+    
+    checkval = 0
+    
+End Sub
+
+Function PreviewBlockDisplay(ByVal rand As Integer)
+
+    If rand = 1 Then
+        'Display block #1 on top
+        With Range("G4", "H5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    ElseIf rand = 2 Then
+        'Display block #2 on top
+        With Range("G4", "G5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H3", "H4").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    ElseIf rand = 3 Then
+        'Display block #3 on top
+        With Range("G3", "G4").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H4", "H5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    ElseIf rand = 4 Then
+        'Display block #4 on top
+        With Range("G3", "H3").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("G4", "G5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    ElseIf rand = 5 Then
+        'Display block #5 on top
+        With Range("G3", "H3").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H4", "H5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    ElseIf rand = 6 Then
+        'Display block #6 on top
+        With Range("G4").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H3", "H5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    ElseIf rand = 7 Then
+        'Display block #7 on top
+        With Range("H2", "H5").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorDark1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+    End If
+
+End Function
+
+Function NewBlockDisplay(ByVal rand As Integer)
+
+    If rand = 1 Then
+        'Display block #1 on top
+        With Range("G7", "H8").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 7
+        temprowarray(2) = 7
+        tempcolarray(2) = 8
+        temprowarray(3) = 8
+        tempcolarray(3) = 7
+        temprowarray(4) = 8
+        tempcolarray(4) = 8
+    ElseIf rand = 2 Then
+        'Display block #2 on top
+        With Range("G8", "G9").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H7", "H8").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 8
+        temprowarray(2) = 8
+        tempcolarray(2) = 7
+        temprowarray(3) = 8
+        tempcolarray(3) = 8
+        temprowarray(4) = 9
+        tempcolarray(4) = 7
+    ElseIf rand = 3 Then
+        'Display block #3 on top
+        With Range("G7", "G8").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H8", "H9").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 7
+        temprowarray(2) = 8
+        tempcolarray(2) = 7
+        temprowarray(3) = 8
+        tempcolarray(3) = 8
+        temprowarray(4) = 9
+        tempcolarray(4) = 8
+    ElseIf rand = 4 Then
+        'Display block #4 on top
+        With Range("G7", "H7").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("G8", "G9").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 7
+        temprowarray(2) = 7
+        tempcolarray(2) = 8
+        temprowarray(3) = 8
+        tempcolarray(3) = 7
+        temprowarray(4) = 9
+        tempcolarray(4) = 7
+    ElseIf rand = 5 Then
+        'Display block #5 on top
+        With Range("G7", "H7").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H8", "H9").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 7
+        temprowarray(2) = 7
+        tempcolarray(2) = 8
+        temprowarray(3) = 8
+        tempcolarray(3) = 8
+        temprowarray(4) = 9
+        tempcolarray(4) = 8
+    ElseIf rand = 6 Then
+        'Display block #6 on top
+        With Range("G8").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        With Range("H7", "H9").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 8
+        temprowarray(2) = 8
+        tempcolarray(2) = 7
+        temprowarray(3) = 8
+        tempcolarray(3) = 8
+        temprowarray(4) = 9
+        tempcolarray(4) = 8
+    ElseIf rand = 7 Then
+        'Display block #7 on top
+        With Range("H7", "H10").Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = 7
+        tempcolarray(1) = 8
+        temprowarray(2) = 8
+        tempcolarray(2) = 8
+        temprowarray(3) = 9
+        tempcolarray(3) = 8
+        temprowarray(4) = 10
+        tempcolarray(4) = 8
+    End If
+
+End Function
+
+'Checks if Block 1 is within the allowable confines of the boundaries, then apply the block
+Function Block1Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    'First checks if Block 1 will be within the maximum boundaries
+    If (rownow1 > 36) Or (colnow1 < 2) Or (colnow1 > 12) Then
+        If (rownow1 > 36) Then
+            tf = False
+        End If
+        Exit Function
+    End If
+    
+    ct1 = arraymax
+    
+    'Next checks if Block 1 will occupy the same space as the existing blocks
+    Do While ct1 > 0
+        If rownow1 = rowarray(ct1) Then
+            If colnow1 = colarray(ct1) Then
+                tf = False
+                Exit Function
+            ElseIf (colnow1 + 1) = colarray(ct1) Then
+                tf = False
+                Exit Function
+            End If
+        ElseIf (rownow1 - 1) = rowarray(ct1) Then
+            If colnow1 = colarray(ct1) Then
+                Exit Function
+            ElseIf (colnow1 + 1) = colarray(ct1) Then
+                Exit Function
+            End If
+        End If
+        ct1 = ct1 - 1
+    Loop
+    
+    'If all checks are passed:
+    'Deletes previous block position
+    DeletePreviousBlock
+     
+    'Finally applies Block 1
+    With Cells(rownow1, colnow1).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    temprowarray(1) = rownow1
+    tempcolarray(1) = colnow1
+    With Cells(rownow1, colnow1 + 1).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    temprowarray(2) = rownow1
+    tempcolarray(2) = colnow1 + 1
+    With Cells(rownow1 - 1, colnow1).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    temprowarray(3) = rownow1 - 1
+    tempcolarray(3) = colnow1
+    With Cells(rownow1 - 1, colnow1 + 1).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    temprowarray(4) = rownow1 - 1
+    tempcolarray(4) = colnow1 + 1
+    
+    'checkval = 1 indicates that the checks are passed
+    checkval = 1
+    
+    tf = True
+
+End Function
+    
+'Checks if Block 2 is within the allowable confines of the boundaries, then apply the block
+Function Block2Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    ct1 = arraymax
+    
+    'Applicable for configuration A of Block 2 (Block 2A)
+    If upnum = 1 Then
+        'First checks if Block 2A will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 13) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+    
+        'Next checks if Block 2A will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                End If
+            ElseIf (colnow1 - 1) = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 2A
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 - 1
+        With Cells(rownow1 + 1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 - 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration B of Block 2 (Block 2B)
+    ElseIf upnum = 2 Then
+        'First checks if Block 2B will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 2B will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 2B
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 + 1
+        tempcolarray(3) = colnow1
+        With Cells(rownow1 + 1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+    
+        tf = True
+        
+    End If
+
+End Function
+
+'Checks if Block 3 is within the allowable confines of the boundaries, then apply the block
+Function Block3Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    ct1 = arraymax
+    
+    'Applicable for configuration A of Block 3 (Block 3A)
+    If upnum = 1 Then
+        'First checks if Block 3A will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 2) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+    
+        'Next checks if Block 3A will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                End If
+            ElseIf (colnow1 + 1) = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 3A
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 + 1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration B of Block 3 (Block 3B)
+    ElseIf upnum = 2 Then
+        'First checks if Block 3B will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 3B will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 3B
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 + 1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 + 1
+        tempcolarray(3) = colnow1
+        With Cells(rownow1 + 1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 - 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+    
+        tf = True
+        
+    End If
+
+End Function
+
+'Checks if Block 4 is wihin the allowable confines of he boundaries, then apply the block
+Function Block4Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    ct1 = arraymax
+    
+    'Applicable for configuration A of Block 4 (Block 4A)
+    If upnum = 1 Then
+        'First checks if Block 4A will be wihin the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 2) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 4A will occupy he same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (colnow1 + 1) = colarray(ct1) Then
+                If (rownow1 - 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 4A
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1 - 1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 - 1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration B of Block 4 (Block 4B)
+    ElseIf upnum = 2 Then
+        'First checks if Block 4B will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 4B will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    Exit Function
+                End If
+            ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                If (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 4B
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 + 1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration C of Block 4 (Block 4C)
+    ElseIf upnum = 3 Then
+        'First checks if Block 4C will be wihin the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 13) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 4C will occupy he same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (colnow1 - 1) = colarray(ct1) Then
+                If (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 4C
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 + 1
+        tempcolarray(3) = colnow1
+        With Cells(rownow1 + 1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 - 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration D of Block 4 (Block 4D)
+    ElseIf upnum = 4 Then
+        'First checks if Block 4D will be within the maximum boundaries
+        If (rownow1 > 36) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 36 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 4D will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                If (colnow1 - 1) = colarray(ct1) Then
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 4D
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 - 1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 - 1
+        tempcolarray(4) = colnow1 - 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    End If
+        
+End Function
+
+'Checks if Block 5 is within the allowable confines of he boundaries, then apply the block
+Function Block5Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    ct1 = arraymax
+    
+    'Applicable for configuration A of Block 5 (Block 5A)
+    If upnum = 1 Then
+        'First checks if Block 5A will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 13) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 5A will occupy he same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (colnow1 - 1) = colarray(ct1) Then
+                If (rownow1 - 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 5A
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1 - 1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 - 1
+        tempcolarray(3) = colnow1 - 1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration B of Block 5 (Block 5B)
+    ElseIf upnum = 2 Then
+        'First checks if Block 5B will be within the maximum boundaries
+        If (rownow1 > 36) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 36 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 5B will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                If (colnow1 + 1) = colarray(ct1) Then
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 5B
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 - 1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 - 1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration C of Block 5 (Block 5C)
+    ElseIf upnum = 3 Then
+        'First checks if Block 5C will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 2) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 5C will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (colnow1 + 1) = colarray(ct1) Then
+                If (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 5C
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 + 1
+        tempcolarray(3) = colnow1
+        With Cells(rownow1 + 1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration D of Block 5 (Block 5D)
+    ElseIf upnum = 4 Then
+        'First checks if Block 5D will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 5D will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                If (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 5D
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 + 1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1 - 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    End If
+        
+End Function
+
+'Checks if Block 6 is within the allowable confines of he boundaries, then apply the block
+Function Block6Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    ct1 = arraymax
+    
+    'Applicable for configuration A of Block 6 (Block 6A)
+    If upnum = 1 Then
+        'First checks if Block 6A will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 13) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 6A will occupy he same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (colnow1 - 1) = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 6A
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 - 1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration B of Block 6 (Block 6B)
+    ElseIf upnum = 2 Then
+        'First checks if Block 6B will be within the maximum boundaries
+        If (rownow1 > 36) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 36 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 6B will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 6B
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 - 1
+        tempcolarray(4) = colnow1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration C of Block 6 (Block 6C)
+    ElseIf upnum = 3 Then
+        'First checks if Block 6C will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 2) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 6C will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (colnow1 + 1) = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 6C
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 + 1
+        tempcolarray(3) = colnow1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration D of Block 6 (Block 6D)
+    ElseIf upnum = 4 Then
+        'First checks if Block 6D will be within the maximum boundaries
+        If (rownow1 > 35) Or (colnow1 < 3) Or (colnow1 > 12) Then
+            If rownow1 > 35 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 6D will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 6D
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 + 1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 1
+        tempcolarray(4) = colnow1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    End If
+        
+End Function
+
+'Checks if Block 7 is within the allowable confines of the boundaries, then apply the block
+Function Block7Pos(ByVal rownow1 As Integer, ByVal colnow1 As Integer)
+
+    Dim ct1 As Integer
+    
+    ct1 = arraymax
+    
+    'Applicable for configuration A of Block 7 (Block 7A)
+    If upnum = 1 Then
+        'First checks if Block 7A will be within the maximum boundaries
+        If (rownow1 > 34) Or (colnow1 < 2) Or (colnow1 > 13) Then
+            If rownow1 > 34 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+    
+        'Next checks if Block 7A will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If colnow1 = colarray(ct1) Then
+                If rownow1 = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 - 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 1) = rowarray(ct1) Then
+                    Exit Function
+                ElseIf (rownow1 + 2) = rowarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 7A
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1 - 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1 - 1
+        tempcolarray(2) = colnow1
+        With Cells(rownow1 + 1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1 + 1
+        tempcolarray(3) = colnow1
+        With Cells(rownow1 + 2, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1 + 2
+        tempcolarray(4) = colnow1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+        
+        tf = True
+    
+    'Applicable for configuration B of Block 7 (Block 7B)
+    ElseIf upnum = 2 Then
+        'First checks if Block 7B will be within the maximum boundaries
+        If (rownow1 > 36) Or (colnow1 < 4) Or (colnow1 > 12) Then
+            If rownow1 > 36 Then
+                tf = False
+                Exit Function
+            End If
+            Exit Function
+        End If
+        
+        'Next checks if Block 7B will occupy the same space as the existing blocks
+        Do While ct1 > 0
+            If rownow1 = rowarray(ct1) Then
+                If colnow1 = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 - 2) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                ElseIf (colnow1 + 1) = colarray(ct1) Then
+                    tf = False
+                    Exit Function
+                End If
+            End If
+            ct1 = ct1 - 1
+        Loop
+        
+        'If all checks are passed
+        'Deletes previous block position
+        DeletePreviousBlock
+        
+        'Finally applies Block 7B
+        With Cells(rownow1, colnow1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(1) = rownow1
+        tempcolarray(1) = colnow1
+        With Cells(rownow1, colnow1 - 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(2) = rownow1
+        tempcolarray(2) = colnow1 - 1
+        With Cells(rownow1, colnow1 - 2).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(3) = rownow1
+        tempcolarray(3) = colnow1 - 2
+        With Cells(rownow1, colnow1 + 1).Interior
+            .Pattern = xlSolid
+            .PatternColorIndex = xlAutomatic
+            .ThemeColor = xlThemeColorLight1
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+        temprowarray(4) = rownow1
+        tempcolarray(4) = colnow1 + 1
+        
+        'checkval = 1 indicates that the checks are passed
+        checkval = 1
+    
+        tf = True
+        
+    End If
+
+End Function
+
+Sub DeletePreviousBlock()
+
+    With Cells(temprowarray(1), tempcolarray(1)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    With Cells(temprowarray(2), tempcolarray(2)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    With Cells(temprowarray(3), tempcolarray(3)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    With Cells(temprowarray(4), tempcolarray(4)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    
+End Sub
+
+'Adds block positions to rowarray and colarray
+
+Sub PermBlock()
+
+    With Cells(temprowarray(1), tempcolarray(1)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    rowarray(arraymax + 1) = temprowarray(1)
+    colarray(arraymax + 1) = tempcolarray(1)
+    With Cells(temprowarray(2), tempcolarray(2)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    rowarray(arraymax + 2) = temprowarray(2)
+    colarray(arraymax + 2) = tempcolarray(2)
+    With Cells(temprowarray(3), tempcolarray(3)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    rowarray(arraymax + 3) = temprowarray(3)
+    colarray(arraymax + 3) = tempcolarray(3)
+    With Cells(temprowarray(4), tempcolarray(4)).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorLight1
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    rowarray(arraymax + 4) = temprowarray(4)
+    colarray(arraymax + 4) = tempcolarray(4)
+    
+    arraymax = arraymax + 4
+    
+    Cells(1, 22 + FULLROWCOUNT) = arraymax
+    
+    FullRow
+    
+    Cells(1, 22 + FULLROWCOUNT) = arraymax
+    
+End Sub
+
+Sub FullRow()
+
+    Dim temprows() As Integer
+    Dim ct1 As Integer
+    Dim ct2 As Integer
+    Dim ct3 As Integer
+    Dim ct4 As Integer
+    Dim ct5 As Integer
+    Dim int1 As Integer
+    Dim int2 As Integer
+    Dim trowarray() As Integer
+    Dim tcolarray() As Integer
+    Dim tarraymax As Integer
+    Dim temptotal As Integer
+    Dim trufals As Boolean
+    
+    ReDim temprows(4)
+    ReDim trowarray(360)
+    ReDim tcolarray(360)
+    
+    For ct1 = 1 To UBound(trowarray) Step 1
+        trowarray(ct1) = -1
+        tcolarray(ct1) = -1
+    Next ct1
+    
+    'Assign the rows of the last block for possible deletion
+    temprows(1) = temprowarray(1)
+    temprows(2) = temprowarray(2)
+    temprows(3) = temprowarray(3)
+    temprows(4) = temprowarray(4)
+    
+    ct1 = 1
+    temptotal = 4
+    
+    'Sorting the temprows() array from large to small
+    For ct1 = 1 To temptotal Step 1
+        For ct2 = (ct1 + 1) To temptotal Step 1
+            If temprows(ct2) > temprows(ct1) Then
+                int1 = temprows(ct1)
+                int2 = temprows(ct2)
+                temprows(ct1) = int2
+                temprows(ct2) = int1
+                int1 = temprows(ct1)
+                int2 = temprows(ct2)
+            End If
+        Next ct2
+    Next ct1
+    
+    'Also remove the items in temprows() that are redundant
+    For ct1 = 1 To temptotal Step 1
+        For ct2 = (ct1 + 1) To temptotal Step 1
+            If temprows(ct2) = temprows(ct1) Then
+                If ct2 = temptotal Then
+                    temprows(ct2) = -1
+                    temptotal = temptotal - 1
+                Else
+                    For ct3 = ct2 To (temptotal - 1) Step 1
+                        temprows(ct3) = temprows(ct3 + 1)
+                    Next ct3
+                    temprows(temptotal) = -1
+                    temptotal = temptotal - 1
+                    ct2 = ct2 - 1
+                End If
+            End If
+        Next ct2
+    Next ct1
+    
+    ct1 = 1
+    'Remove items in temprows() that are not full rows needing deletion
+    Do While ct1 <= temptotal
+        int1 = 0
+        For ct2 = 1 To arraymax Step 1
+            If rowarray(ct2) = temprows(ct1) Then
+                int1 = int1 + 1
+            End If
+        Next ct2
+        If int1 < 12 Then
+            temptotal = temptotal - 1
+            For ct2 = ct1 To temptotal Step 1
+                temprows(ct2) = temprows(ct2 + 1)
+            Next ct2
+            temprows(temptotal + 1) = -1
+            ct1 = ct1 - 1
+        End If
+        ct1 = ct1 + 1
+    Loop
+    
+    If temptotal > 0 Then
+        Cells(2, 21 + (2 * FULLROWCOUNT)) = temptotal
+        Cells(4, 21 + (2 * FULLROWCOUNT)) = temprows(1)
+        Cells(5, 21 + (2 * FULLROWCOUNT)) = temprows(2)
+        Cells(6, 21 + (2 * FULLROWCOUNT)) = temprows(3)
+        Cells(7, 21 + (2 * FULLROWCOUNT)) = temprows(4)
+        For ct1 = 1 To UBound(rowarray) Step 1
+            Cells(9 + ct1, 21 + (2 * FULLROWCOUNT)) = rowarray(ct1)
+            Cells(9 + ct1, 22 + (2 * FULLROWCOUNT)) = colarray(ct1)
+        Next ct1
+        FULLROWCOUNT = FULLROWCOUNT + 1
+    End If
+    
+    'Go through all permanent blocks and copy over all blocks to keep to temp arrays
+    'For blocks situated above rows to delete, move their row location down
+    
+    'Find the highest row (lowest row number) currently occupied, to identify the rows that needs to update colors
+    If temptotal > 0 Then
+        int1 = rowarray(1)
+        For ct1 = 1 To arraymax Step 1
+            If rowarray(ct1) < int1 Then
+                If rowarray(ct1) = -1 Then
+                    Exit For
+                Else
+                    int1 = rowarray(ct1)
+                End If
+            End If
+        Next ct1
+    End If
+    
+    If temptotal > 0 Then
+        For ct1 = 1 To temptotal Step 1
+            ct3 = 1
+            tarraymax = 0
+            For ct2 = 1 To arraymax Step 1
+                trowarray(ct3) = rowarray(ct2)
+                tcolarray(ct3) = colarray(ct2)
+                trufals = True
+                If rowarray(ct2) < (temprows(ct1) + (ct1 - 1)) Then
+                    trowarray(ct3) = trowarray(ct3) + 1
+                End If
+                If rowarray(ct2) = (temprows(ct1) + (ct1 - 1)) Then
+                    trufals = False
+                End If
+                If trufals = True Then
+                    ct3 = ct3 + 1
+                    tarraymax = tarraymax + 1
+                End If
+            Next ct2
+            rowarray = trowarray
+            colarray = tcolarray
+            arraymax = tarraymax
+        Next ct1
+    End If
+    
+    'Update color for moved rows
+    If temptotal > 0 Then
+        For ct1 = temprows(1) To int1 Step -1
+            For ct2 = 2 To 13 Step 1
+                AddOrRemoveBlock ct1, ct2, False
+            Next ct2
+            For ct2 = 1 To tarraymax Step 1
+                If trowarray(ct2) = ct1 Then
+                    If trowarray(ct2) = -1 Then
+                        Exit For
+                    Else
+                        AddOrRemoveBlock trowarray(ct2), tcolarray(ct2), True
+                    End If
+                End If
+            Next ct2
+        Next ct1
+    End If
+    
+    Cells(2, 21 + (2 * FULLROWCOUNT)) = temptotal
+    Cells(4, 21 + (2 * FULLROWCOUNT)) = temprows(1)
+    Cells(5, 21 + (2 * FULLROWCOUNT)) = temprows(2)
+    Cells(6, 21 + (2 * FULLROWCOUNT)) = temprows(3)
+    Cells(7, 21 + (2 * FULLROWCOUNT)) = temprows(4)
+    
+    For ct1 = 1 To UBound(rowarray) Step 1
+        Cells(9 + ct1, 21 + (2 * FULLROWCOUNT)) = rowarray(ct1)
+        Cells(9 + ct1, 22 + (2 * FULLROWCOUNT)) = colarray(ct1)
+    Next ct1
+    
+End Sub
+
+Function AddOrRemoveBlock(row As Integer, col As Integer, tbfw As Boolean)
+    
+    With Cells(row, col).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        If tbfw = True Then
+            .ThemeColor = xlThemeColorLight1
+        ElseIf tbfw = False Then
+            .ThemeColor = xlThemeColorDark1
+        End If
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+    End With
+    
+End Function
